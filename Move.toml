@@ -1,0 +1,16 @@
+[package]
+name = "P2PTutoringMarketplace"
+version = "1.0.0"
+authors = []
+
+[addresses]
+MyModule="0x396d13c05063951ed9519d12771ca542cc8d306af12af088c45700bd34f2e3df"
+[dev-addresses]
+
+[dependencies.AptosFramework]
+git = "https://github.com/aptos-labs/aptos-framework.git"
+rev = "mainnet"
+subdir = "aptos-framework"
+
+[dev-dependencies]
+
