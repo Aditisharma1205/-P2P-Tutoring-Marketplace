@@ -1,16 +1,111 @@
-[package]
-name = "P2PTutoringMarketplace"
-version = "1.0.0"
-authors = []
+module MyModule::P2PTutoringMarketplace {
 
-[addresses]
-MyModule="0x396d13c05063951ed9519d12771ca542cc8d306af12af088c45700bd34f2e3df"
-[dev-addresses]
+    use std::string;
+    use aptos_framework::signer;
+    use aptos_framework::coin;
+    use aptos_framework::aptos_coin::AptosCoin;
 
-[dependencies.AptosFramework]
-git = "https://github.com/aptos-labs/aptos-framework.git"
-rev = "mainnet"
-subdir = "aptos-framework"
+    /// Stores tutor information
+    struct Tutor has key {
+        name: string::String,
+        subject: string::String,
+        price_per_session: u64,
+        total_sessions: u64,
+    }
 
-[dev-dependencies]
+    /// Register as a tutor
+    public entry fun register_tutor(
+        owner: &signer,
+        name: string::String,
+        subject: string::String,
+        price: u64
+    ) {
 
+        let owner_address = signer::address_of(owner);
+
+        // Prevent duplicate registration
+        assert!(
+            !exists<Tutor>(owner_address),
+            1001
+        );
+
+        let tutor = Tutor {
+            name,
+            subject,
+            price_per_session: price,
+            total_sessions: 0,
+        };
+
+        move_to(owner, tutor);
+    }
+
+    /// Book a tutoring session
+    public entry fun book_session(
+        student: &signer,
+        tutor_address: address
+    ) acquires Tutor {
+
+        // Check tutor exists
+        assert!(
+            exists<Tutor>(tutor_address),
+            1002
+        );
+
+        let tutor = borrow_global_mut<Tutor>(tutor_address);
+
+        // Withdraw payment from student
+        let payment = coin::withdraw<AptosCoin>(
+            student,
+            tutor.price_per_session
+        );
+
+        // Send payment to tutor
+        coin::deposit<AptosCoin>(
+            tutor_address,
+            payment
+        );
+
+        // Increase session count
+        tutor.total_sessions = tutor.total_sessions + 1;
+    }
+
+    /// Update tutoring price
+    public entry fun update_price(
+        owner: &signer,
+        new_price: u64
+    ) acquires Tutor {
+
+        let owner_address = signer::address_of(owner);
+
+        assert!(
+            exists<Tutor>(owner_address),
+            1003
+        );
+
+        let tutor = borrow_global_mut<Tutor>(owner_address);
+
+        tutor.price_per_session = new_price;
+    }
+
+    /// View tutor price
+    #[view]
+    public fun get_price(
+        tutor_address: address
+    ): u64 acquires Tutor {
+
+        borrow_global<Tutor>(
+            tutor_address
+        ).price_per_session
+    }
+
+    /// View total sessions
+    #[view]
+    public fun get_total_sessions(
+        tutor_address: address
+    ): u64 acquires Tutor {
+
+        borrow_global<Tutor>(
+            tutor_address
+        ).total_sessions
+    }
+}
